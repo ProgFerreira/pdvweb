@@ -1,9 +1,12 @@
 import type { NextConfig } from "next"
 
-// ─── Validação de variáveis de ambiente no boot ────────────────────────────────
-const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? ""
+// ─── Validação de AUTH_SECRET — só em runtime, nunca durante o build ───────────
+// NEXT_PHASE_PRODUCTION_BUILD é definido pelo Next.js durante `next build`
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build"
 
-if (process.env.NODE_ENV === "production") {
+if (!isBuildPhase && process.env.NODE_ENV === "production") {
+  const secret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? ""
+
   if (!secret || secret.length < 32) {
     throw new Error(
       "[PDV] AUTH_SECRET não definida ou muito curta (mínimo 32 caracteres). " +
@@ -18,7 +21,7 @@ if (process.env.NODE_ENV === "production") {
   ) {
     throw new Error(
       "[PDV] AUTH_SECRET contém um valor padrão de desenvolvimento. " +
-      "Defina um segredo único no .env.local antes de ir para produção."
+      "Defina um segredo único no .env antes de ir para produção."
     )
   }
 }
