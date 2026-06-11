@@ -2,8 +2,8 @@
  * Exemplo de layout para Next.js App Router.
  * Copie para app/(dashboard)/layout.tsx e ajuste nav + usuário.
  */
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { defaultNavItems } from "@/config/nav"
+import { DashboardLayout } from "../components/layout/dashboard-layout"
+import { defaultNavItems } from "../config/nav.example"
 
 export default function DashboardRouteLayout({
   children,

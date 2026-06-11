@@ -1,7 +1,7 @@
 "use client"
 
 import { Bell, LogOut, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "../ui/button"
 
 export interface TopbarProps {
   title?: string

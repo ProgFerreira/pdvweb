@@ -1,4 +1,4 @@
-import type { NavItem } from "@/components/layout/sidebar"
+import type { NavItem } from "../components/layout/sidebar"
 import {
   LayoutDashboard,
   ShoppingCart,

@@ -1,5 +1,5 @@
-import { Sidebar, type SidebarProps } from "@/components/layout/sidebar"
-import { Topbar, type TopbarProps } from "@/components/layout/topbar"
+import { Sidebar, type SidebarProps } from "./sidebar"
+import { Topbar, type TopbarProps } from "./topbar"
 
 export interface DashboardLayoutProps extends SidebarProps, TopbarProps {
   children: React.ReactNode
