@@ -1,0 +1,9 @@
+{
+  "name": "@pdv/ui-kit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UI Kit portátil do PDV Galetos",
+  "scripts": {
+    "build:css": "node scripts/build-css.mjs"
+  }
+}

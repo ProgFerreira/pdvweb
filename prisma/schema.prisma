@@ -1,0 +1,667 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Tenant (multi-unidade) ───────────────────────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("basic")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users        User[]
+  settings     Settings?
+  categories   Category[]
+  products     Product[]
+  customers    Customer[]
+  suppliers    Supplier[]
+  sales           Sale[]
+  cashRegisters   CashRegister[]
+  auditLogs       AuditLog[]
+  stockMovements  StockMovement[]
+  purchaseOrders     PurchaseOrder[]
+  purchaseInvoices   PurchaseInvoice[]
+  accountsPayable    AccountPayable[]
+  tables          Table[]
+  loyaltyAccounts LoyaltyAccount[]
+  promotions      Promotion[]
+
+  @@map("tenants")
+}
+
+model Settings {
+  id          String   @id @default(cuid())
+  tenantId    String   @db.VarChar(30)   @unique
+  storeName   String   @default("PDV Galetos")
+  logoUrl     String?
+  address     String?
+  phone       String?
+  serviceFee    Decimal @default(0) @db.Decimal(5, 2)
+  kdsSlaMinutes Int     @default(15)
+  printFooter   String? @db.Text
+  openHours     String?
+  stoneEnabled        Boolean @default(false)
+  stoneAccountId      String? @db.VarChar(200)
+  stoneClientId       String? @db.VarChar(200)
+  stoneClientSecret   String? @db.VarChar(500)
+  stoneTerminalSerial String? @db.VarChar(100)
+  fiscalEnabled       Boolean @default(false)
+  fiscalCnpj          String? @db.VarChar(20)
+  fiscalIE            String? @db.VarChar(20)
+  fiscalCRT           String? @db.VarChar(5)
+  fiscalSerie         Int?
+  fiscalAmbiente      String? @db.VarChar(20)
+  fiscalFocusToken    String? @db.VarChar(500)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// ─── Permissões (RBAC em banco) ───────────────────────────────────────────────
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique @db.VarChar(100)
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  role         UserRole
+  permissionId String
+
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([role, permissionId])
+  @@map("role_permissions")
+}
+
+// ─── Usuários ────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  GERENTE
+  CAIXA
+  ATENDENTE
+  COZINHA
+}
+
+model User {
+  id        String    @id @default(cuid())
+  tenantId  String    @db.VarChar(30)
+  name      String
+  email     String    @db.VarChar(191)
+  password  String
+  role      UserRole  @default(ATENDENTE)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  sales         Sale[]
+  cashRegisters CashRegister[]
+  auditLogs     AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+// ─── Categorias ───────────────────────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  tenantId    String   @db.VarChar(30)
+  name        String   @db.VarChar(100)
+  description String?
+  color         String?        @default("#6366f1")
+  kitchenSector KitchenSector?
+  isActive      Boolean        @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  products Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("categories")
+}
+
+// ─── Produtos ─────────────────────────────────────────────────────────────────
+
+model Product {
+  id          String    @id @default(cuid())
+  tenantId    String   @db.VarChar(30)
+  code          String         @db.VarChar(50)
+  barcode       String?        @db.VarChar(50)
+  name          String         @db.VarChar(191)
+  description   String?        @db.Text
+  categoryId    String
+  supplierId    String?
+  kitchenSector KitchenSector?
+  price         Decimal        @db.Decimal(10, 2)
+  cost          Decimal?       @db.Decimal(10, 2)
+  stock         Int            @default(0)
+  minStock      Int            @default(0)
+  ncm           String?        @db.VarChar(10)
+  cfop          String?        @db.VarChar(10)
+  cst           String?        @db.VarChar(10)
+  origin        Int?           @default(0)
+  imageUrl      String?
+  isActive      Boolean        @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  category       Category        @relation(fields: [categoryId], references: [id])
+  supplier       Supplier?       @relation(fields: [supplierId], references: [id])
+  saleItems      SaleItem[]
+  stockMovements StockMovement[]
+  purchaseItems  PurchaseOrderItem[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId, deletedAt])
+  @@index([tenantId, barcode])
+  @@map("products")
+}
+
+// ─── Clientes ────────────────────────────────────────────────────────────────
+
+model Customer {
+  id           String    @id @default(cuid())
+  tenantId     String   @db.VarChar(30)
+  name         String
+  phone        String?
+  cpf          String?   @db.VarChar(14)
+  address      String?
+  neighborhood String?
+  city         String?
+  notes        String?   @db.Text
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  sales          Sale[]
+  loyaltyAccount LoyaltyAccount?
+
+  @@unique([tenantId, cpf])
+  @@index([tenantId])
+  @@map("customers")
+}
+
+// ─── Fornecedores ─────────────────────────────────────────────────────────────
+
+model Supplier {
+  id         String    @id @default(cuid())
+  tenantId   String   @db.VarChar(30)
+  name       String
+  document   String?
+  phone      String?
+  email      String?
+  address    String?
+  supplyType String?
+  notes      String?   @db.Text
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  tenant         Tenant          @relation(fields: [tenantId], references: [id])
+  products       Product[]
+  purchaseOrders   PurchaseOrder[]
+  purchaseInvoices PurchaseInvoice[]
+  accountsPayable  AccountPayable[]
+
+  @@index([tenantId])
+  @@map("suppliers")
+}
+
+// ─── Vendas ───────────────────────────────────────────────────────────────────
+
+enum OrderType {
+  BALCAO
+  RETIRADA
+  DELIVERY_PROPRIO
+}
+
+enum KitchenSector {
+  GRELHA
+  ACOMPANHAMENTOS
+  BEBIDAS
+  SOBREMESAS
+  GERAL
+}
+
+enum SaleStatus {
+  PAGAMENTO_PENDENTE
+  AGUARDANDO
+  EM_PREPARO
+  PRONTO
+  ENTREGUE
+  CANCELADO
+}
+
+model Sale {
+  id             String     @id @default(cuid())
+  tenantId       String   @db.VarChar(30)
+  orderNumber    Int
+  customerId     String?
+  userId         String
+  cashRegisterId   String?
+  tableId          String?
+  orderType        OrderType  @default(BALCAO)
+  status           SaleStatus @default(AGUARDANDO)
+  subtotal         Decimal    @db.Decimal(10, 2)
+  discount         Decimal    @db.Decimal(10, 2) @default(0)
+  addition         Decimal    @db.Decimal(10, 2) @default(0)
+  serviceFeeAmount Decimal    @db.Decimal(10, 2) @default(0)
+  waiveServiceFee  Boolean    @default(false)
+  total            Decimal    @db.Decimal(10, 2)
+  notes            String?    @db.Text
+  customerName     String?
+  customerPhone    String?
+  deliveryAddress  String?
+  deliveryNeighborhood String?
+  deliveryCity     String?
+  deliveryComplement String?
+  deliveryReference  String?
+  cancelReason     String?
+  nfceKey          String?    @db.VarChar(44)
+  nfceStatus       String?    @db.VarChar(20)
+  nfceNumber       String?    @db.VarChar(20)
+  nfceXmlUrl       String?
+  nfcePdfUrl       String?
+  printedAt        DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  cashRegister CashRegister? @relation(fields: [cashRegisterId], references: [id])
+  table        Table?        @relation(fields: [tableId], references: [id])
+  items        SaleItem[]
+  payments     Payment[]
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId, createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  discount  Decimal @db.Decimal(10, 2) @default(0)
+  total     Decimal @db.Decimal(10, 2)
+  notes     String?
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+// ─── Pagamentos ───────────────────────────────────────────────────────────────
+
+enum PaymentMethod {
+  DINHEIRO
+  PIX
+  DEBITO
+  CREDITO
+  VALE
+}
+
+model Payment {
+  id                 String        @id @default(cuid())
+  saleId             String
+  method             PaymentMethod
+  amount             Decimal       @db.Decimal(10, 2)
+  change             Decimal?      @db.Decimal(10, 2)
+  stoneTransactionId String?       @db.VarChar(100)
+  stoneStatus        String?       @db.VarChar(30)
+  stoneAuthCode      String?       @db.VarChar(50)
+  stoneNsu           String?       @db.VarChar(50)
+  stoneInstallments  Int?
+  stoneCapturedAt    DateTime?
+  createdAt          DateTime      @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([stoneTransactionId])
+  @@map("payments")
+}
+
+// ─── Caixa ────────────────────────────────────────────────────────────────────
+
+enum CashStatus {
+  ABERTO
+  FECHADO
+}
+
+model CashRegister {
+  id            String     @id @default(cuid())
+  tenantId      String   @db.VarChar(30)
+  userId        String
+  status        CashStatus @default(ABERTO)
+  initialAmount Decimal    @db.Decimal(10, 2) @default(0)
+  totalCash     Decimal    @db.Decimal(10, 2) @default(0)
+  totalPix      Decimal    @db.Decimal(10, 2) @default(0)
+  totalDebit    Decimal    @db.Decimal(10, 2) @default(0)
+  totalCredit   Decimal    @db.Decimal(10, 2) @default(0)
+  totalVoucher  Decimal    @db.Decimal(10, 2) @default(0)
+  totalSales    Decimal    @db.Decimal(10, 2) @default(0)
+  openedAt      DateTime   @default(now())
+  closedAt       DateTime?
+  countedCash    Decimal?   @db.Decimal(10, 2)
+  cashDifference Decimal?   @db.Decimal(10, 2)
+  notes          String?    @db.Text
+  closeNotes     String?    @db.Text
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  tenant    Tenant         @relation(fields: [tenantId], references: [id])
+  user      User           @relation(fields: [userId], references: [id])
+  sales     Sale[]
+  movements CashMovement[]
+
+  @@index([tenantId, status])
+  @@map("cash_registers")
+}
+
+enum MovementType {
+  ENTRADA
+  SAIDA
+}
+
+model CashMovement {
+  id             String       @id @default(cuid())
+  cashRegisterId String
+  type           MovementType
+  amount         Decimal      @db.Decimal(10, 2)
+  description    String?
+  createdAt      DateTime     @default(now())
+
+  cashRegister CashRegister @relation(fields: [cashRegisterId], references: [id])
+
+  @@map("cash_movements")
+}
+
+// ─── Estoque (Kardex) ─────────────────────────────────────────────────────────
+
+enum StockMovementType {
+  VENDA
+  CANCELAMENTO
+  ENTRADA
+  AJUSTE
+  PERDA
+  COMPRA
+}
+
+model StockMovement {
+  id          String            @id @default(cuid())
+  tenantId    String            @db.VarChar(30)
+  productId   String
+  userId      String?
+  type        StockMovementType
+  quantity    Int
+  stockBefore Int
+  stockAfter  Int
+  referenceId String?
+  notes       String?
+  createdAt   DateTime          @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([productId])
+  @@map("stock_movements")
+}
+
+// ─── Compras ──────────────────────────────────────────────────────────────────
+
+enum PurchaseOrderStatus {
+  RASCUNHO
+  CONFIRMADA
+  CANCELADA
+}
+
+model PurchaseOrder {
+  id         String              @id @default(cuid())
+  tenantId   String              @db.VarChar(30)
+  supplierId String
+  userId     String
+  status     PurchaseOrderStatus @default(RASCUNHO)
+  total      Decimal             @db.Decimal(10, 2) @default(0)
+  notes      String?             @db.Text
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  tenant          Tenant              @relation(fields: [tenantId], references: [id])
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  items           PurchaseOrderItem[]
+  accountsPayable AccountPayable[]
+
+  @@index([tenantId, createdAt])
+  @@map("purchase_orders")
+}
+
+// ─── Contas a Pagar ───────────────────────────────────────────────────────────
+
+enum PayableStatus {
+  PENDENTE
+  PARCIAL
+  PAGO
+  CANCELADO
+}
+
+enum PayableCategory {
+  FORNECEDOR
+  ALUGUEL
+  SALARIO
+  IMPOSTO
+  SERVICO
+  OUTROS
+}
+
+model AccountPayable {
+  id              String          @id @default(cuid())
+  tenantId        String          @db.VarChar(30)
+  description     String          @db.VarChar(191)
+  supplierId      String?
+  purchaseOrderId String?
+  category        PayableCategory @default(OUTROS)
+  amount          Decimal         @db.Decimal(10, 2)
+  paidAmount      Decimal         @db.Decimal(10, 2) @default(0)
+  dueDate         DateTime
+  paidAt          DateTime?
+  status          PayableStatus   @default(PENDENTE)
+  paymentMethod   PaymentMethod?
+  notes           String?         @db.Text
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  supplier      Supplier?      @relation(fields: [supplierId], references: [id])
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  @@index([tenantId, dueDate])
+  @@index([tenantId, status])
+  @@index([tenantId, deletedAt])
+  @@map("accounts_payable")
+}
+
+model PurchaseOrderItem {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  quantity        Int
+  unitCost        Decimal @db.Decimal(10, 2)
+  total           Decimal @db.Decimal(10, 2)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+
+  @@map("purchase_order_items")
+}
+
+// ─── Notas Fiscais de Compra ──────────────────────────────────────────────────
+
+enum PurchaseInvoiceStatus {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
+enum PurchaseInvoicePaymentMethod {
+  DINHEIRO
+  PIX
+  BOLETO
+  TRANSFERENCIA
+  CARTAO
+}
+
+model PurchaseInvoice {
+  id            String                        @id @default(cuid())
+  tenantId      String                        @db.VarChar(30)
+  supplierId    String
+  userId        String
+  number        String?                       @db.VarChar(50)
+  issueDate     DateTime
+  amount        Decimal                       @db.Decimal(12, 2)
+  status        PurchaseInvoiceStatus         @default(PENDENTE)
+  paymentMethod PurchaseInvoicePaymentMethod?
+  paymentDate   DateTime?
+  fileUrl       String?
+  fileMime      String?                       @db.VarChar(100)
+  notes         String?                       @db.Text
+  createdAt     DateTime                      @default(now())
+  updatedAt     DateTime                      @updatedAt
+  deletedAt     DateTime?
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  supplier Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([tenantId, issueDate])
+  @@index([tenantId, status])
+  @@index([tenantId, supplierId])
+  @@map("purchase_invoices")
+}
+
+// ─── Mesas ────────────────────────────────────────────────────────────────────
+
+enum TableStatus {
+  LIVRE
+  OCUPADA
+  RESERVADA
+}
+
+model Table {
+  id        String      @id @default(cuid())
+  tenantId  String      @db.VarChar(30)
+  number    Int
+  name      String?
+  capacity  Int         @default(4)
+  status    TableStatus @default(LIVRE)
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  sales  Sale[]
+
+  @@unique([tenantId, number])
+  @@map("tables")
+}
+
+// ─── Fidelidade ───────────────────────────────────────────────────────────────
+
+model LoyaltyAccount {
+  id         String   @id @default(cuid())
+  tenantId   String   @db.VarChar(30)
+  customerId String   @unique
+  points     Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
+  @@index([tenantId])
+  @@map("loyalty_accounts")
+}
+
+// ─── Promoções ────────────────────────────────────────────────────────────────
+
+enum PromotionType {
+  PERCENT
+  FIXED
+}
+
+model Promotion {
+  id         String        @id @default(cuid())
+  tenantId   String        @db.VarChar(30)
+  name       String
+  type       PromotionType
+  value      Decimal       @db.Decimal(10, 2)
+  categoryId String?
+  productId  String?
+  startAt    DateTime?
+  endAt      DateTime?
+  isActive   Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, isActive])
+  @@map("promotions")
+}
+
+// ─── Logs de Auditoria ────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String   @db.VarChar(30)
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  oldData    Json?
+  newData    Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@map("audit_logs")
+}

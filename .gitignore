@@ -1,0 +1,58 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env files
+.env
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# prisma
+/prisma/*.db
+/prisma/*.db-journal
+
+# IDE
+.idea
+.vscode
+
+# Uploads de arquivos (NFs, documentos)
+/public/uploads/
+
+# Backups de banco
+/backups/
+
+# Credenciais e anotações locais
+.credenciais.md
+
+# Claude Code
+.claude/settings.local.json
+
+# Scripts de CI/deploy locais
+*.local.sh

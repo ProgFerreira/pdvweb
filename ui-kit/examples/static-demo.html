@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UI Kit — Demo estática</title>
+  <link rel="stylesheet" href="../dist/theme.min.css" />
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+  <div class="max-w-6xl mx-auto space-y-8">
+    <header class="page-header">
+      <div>
+        <h1 class="text-2xl font-bold text-foreground">UI Kit PDV</h1>
+        <p class="text-muted-foreground text-sm mt-1">Demonstração para PHP / HTML estático</p>
+      </div>
+      <button type="button" class="btn-primary">Novo registro</button>
+    </header>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="kpi-card kpi-card-blue">
+        <div>
+          <p class="text-xs text-muted-foreground uppercase">Vendas hoje</p>
+          <p class="text-2xl font-bold">R$ 1.240</p>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card-green">
+        <div>
+          <p class="text-xs text-muted-foreground uppercase">Pedidos</p>
+          <p class="text-2xl font-bold">48</p>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card-amber">
+        <div>
+          <p class="text-xs text-muted-foreground uppercase">Ticket médio</p>
+          <p class="text-2xl font-bold">R$ 25,80</p>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card-purple">
+        <div>
+          <p class="text-xs text-muted-foreground uppercase">Clientes</p>
+          <p class="text-2xl font-bold">12</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-card">
+      <div class="filter-grid">
+        <div>
+          <label class="filter-label" for="busca">Busca</label>
+          <input id="busca" type="text" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm" placeholder="Nome..." />
+        </div>
+        <div>
+          <label class="filter-label" for="status">Status</label>
+          <select id="status" class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm">
+            <option>Todos</option>
+            <option>Ativo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header">Listagem</div>
+      <div class="p-4 table-wrapper border-0 shadow-none rounded-none">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="table-head-soft">
+              <th class="px-4 py-3 text-left">Código</th>
+              <th class="px-4 py-3 text-left">Nome</th>
+              <th class="px-4 py-3 text-left">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-b hover:bg-muted/50">
+              <td class="px-4 py-3">001</td>
+              <td class="px-4 py-3">Produto exemplo</td>
+              <td class="px-4 py-3"><span class="inline-flex rounded-md bg-green-100 text-green-800 px-2 py-0.5 text-xs font-semibold">Ativo</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
